@@ -11,13 +11,14 @@ import Navbar from '../components/Navbar';
 import CartDrawer from '../components/CartDrawer';
 import Footer from '../components/Footer';
 import useCartStore from '../store/useCartStore';
-import { getProductById } from '../services/dataService';
+import useProductStore from '../store/useProductStore';
 import ContentRenderer from '../components/ContentRenderer';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart, openCart } = useCartStore();
+  const { products, fetchProducts } = useProductStore();
   
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -27,8 +28,9 @@ const ProductDetail = () => {
     const loadProduct = async () => {
       setLoading(true);
       try {
-        const data = await getProductById(id);
-        setProduct(data);
+        await fetchProducts();
+        const foundProduct = products.find(p => p.id === id);
+        setProduct(foundProduct);
       } catch (error) {
         console.error("Error loading product:", error);
       } finally {
@@ -36,7 +38,7 @@ const ProductDetail = () => {
       }
     };
     loadProduct();
-  }, [id]);
+  }, [id, products.length]);
   
   // States for interaction
   const [selectedSize, setSelectedSize] = useState(null);

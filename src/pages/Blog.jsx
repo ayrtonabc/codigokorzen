@@ -6,24 +6,13 @@ import { Helmet } from 'react-helmet-async';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import CartDrawer from '../components/CartDrawer';
-import { getBlogPosts } from '../services/dataService';
+import useBlogStore from '../store/useBlogStore';
 
 const Blog = () => {
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { posts, loading, fetchPosts } = useBlogStore();
 
   useEffect(() => {
-    const loadPosts = async () => {
-      try {
-        const data = await getBlogPosts();
-        setPosts(data);
-      } catch (error) {
-        console.error("Failed to load blog posts", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadPosts();
+    fetchPosts();
   }, []);
 
   return (
@@ -55,9 +44,9 @@ const Blog = () => {
           </motion.p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="space-y-6">
           {loading ? (
-             <div className="col-span-full flex justify-center py-20">
+             <div className="flex justify-center py-20">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-korzen-olive"></div>
              </div>
           ) : (
@@ -67,47 +56,46 @@ const Blog = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-stone-100 flex flex-col h-full"
+              className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-stone-100"
             >
-              <Link to={`/blog/${post.id}`} className="block aspect-video overflow-hidden group">
-                <img 
-                  src={post.image} 
-                  alt={post.title} 
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-              </Link>
-              
-              <div className="p-6 flex flex-col flex-grow">
-                <div className="flex items-center text-xs text-korzen-olive font-medium uppercase tracking-wider mb-3">
-                  <span>{post.category}</span>
+              <Link to={`/blog/${post.id}`} className="flex flex-col md:flex-row group">
+                <div className="md:w-2/5 lg:w-1/3 aspect-video md:aspect-auto overflow-hidden">
+                  <img 
+                    src={post.image} 
+                    alt={post.title} 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
                 </div>
                 
-                <h2 className="text-xl font-serif font-bold text-gray-900 mb-3 line-clamp-2 hover:text-korzen-olive transition-colors">
-                  <Link to={`/blog/${post.id}`}>{post.title}</Link>
-                </h2>
-                
-                <p className="text-gray-600 text-sm mb-6 line-clamp-3 flex-grow">
-                  {post.excerpt}
-                </p>
-                
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100 text-xs text-gray-500">
-                  <div className="flex items-center space-x-4">
-                    <span className="flex items-center">
-                      <Calendar size={14} className="mr-1" /> {post.date}
-                    </span>
-                    <span className="flex items-center">
-                      <Clock size={14} className="mr-1" /> {post.readTime}
+                <div className="p-6 md:p-8 flex flex-col flex-grow md:w-3/5 lg:w-2/3">
+                  <div className="flex items-center text-xs text-korzen-olive font-medium uppercase tracking-wider mb-3">
+                    <span>{post.category}</span>
+                  </div>
+                  
+                  <h2 className="text-2xl md:text-3xl font-serif font-bold text-gray-900 mb-4 hover:text-korzen-olive transition-colors">
+                    {post.title}
+                  </h2>
+                  
+                  <p className="text-gray-600 mb-6 line-clamp-3 flex-grow">
+                    {post.excerpt}
+                  </p>
+                  
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center space-x-4 text-xs text-gray-500">
+                      <span className="flex items-center">
+                        <Calendar size={14} className="mr-1" /> {post.date}
+                      </span>
+                      <span className="flex items-center">
+                        <Clock size={14} className="mr-1" /> {post.readTime}
+                      </span>
+                    </div>
+                    
+                    <span className="inline-flex items-center text-sm font-medium text-korzen-charcoal group-hover:text-korzen-olive transition-colors">
+                      Czytaj więcej <ArrowRight size={16} className="ml-1" />
                     </span>
                   </div>
                 </div>
-                
-                <Link 
-                  to={`/blog/${post.id}`}
-                  className="mt-4 inline-flex items-center text-sm font-medium text-korzen-charcoal hover:text-korzen-olive transition-colors"
-                >
-                  Czytaj więcej <ArrowRight size={16} className="ml-1" />
-                </Link>
-              </div>
+              </Link>
             </motion.article>
           )))}
         </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import useCartStore from '../store/useCartStore';
+import useOrderStore from '../store/useOrderStore';
 import { formatPrice } from '../utils/formatPrice';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -8,7 +9,8 @@ import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 
 const Checkout = () => {
-  const { cart, getCartTotal } = useCartStore();
+  const { cart, getCartTotal, clearCart } = useCartStore();
+  const addOrder = useOrderStore((state) => state.addOrder);
   const total = getCartTotal(cart);
   const [step, setStep] = useState(1); // 1: Contact, 2: Shipping, 3: Payment
   const [formData, setFormData] = useState({
@@ -212,6 +214,29 @@ const Checkout = () => {
                         `\n\n*Dostawa:* ${total > 200 ? 'Gratis' : '15 zł'}` +
                         `\n*Do zapłaty:* ${formatPrice(total + (total > 200 ? 0 : 15))}` +
                         `\n\n*Dane klienta:*\n${formData.firstName} ${formData.lastName}\n${formData.email}\n${formData.address}\n${formData.zip} ${formData.city}`;
+                      
+                      // Guardar orden en el sistema
+                      addOrder({
+                        items: cart.map(item => ({
+                          id: item.id,
+                          name: item.name,
+                          price: item.price,
+                          quantity: item.quantity,
+                          image: item.image,
+                          customization: item.customization
+                        })),
+                        customerInfo: {
+                          name: `${formData.firstName} ${formData.lastName}`,
+                          email: formData.email,
+                          phone: '',
+                          address: `${formData.address}, ${formData.zip} ${formData.city}`
+                        },
+                        total: total + (total > 200 ? 0 : 15),
+                        shippingCost: total > 200 ? 0 : 15
+                      });
+                      
+                      // Limpiar carrito
+                      clearCart();
                       
                       const encodedText = encodeURIComponent(orderText);
                       window.open(`https://wa.me/48123456789?text=${encodedText}`, '_blank');

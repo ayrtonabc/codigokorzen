@@ -7,26 +7,15 @@ import CategoryGrid from '../components/CategoryGrid';
 import ProductCard from '../components/ProductCard';
 import Footer from '../components/Footer';
 import CartDrawer from '../components/CartDrawer';
-import { getProducts } from '../services/dataService';
+import useProductStore from '../store/useProductStore';
 import { useParams, Link } from 'react-router-dom';
 
 const Home = () => {
   const { category } = useParams();
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { products, loading, fetchProducts } = useProductStore();
 
   useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        const data = await getProducts();
-        setProducts(data);
-      } catch (error) {
-        console.error("Failed to load products", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadProducts();
+    fetchProducts();
   }, []);
 
   const seoTexts = {

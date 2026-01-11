@@ -7,11 +7,12 @@ import useAuthStore from '../store/useAuthStore';
 import useUserStore from '../store/useUserStore';
 import TopBar from './TopBar';
 import { products } from '../data/products';
-import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Navbar = () => {
   const { cart, toggleCart } = useCartStore();
-  const { isAuthenticated, logout } = useAuthStore();
+  const adminAuth = useAuthStore();
+  const userAuth = useUserStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -21,7 +22,6 @@ const Navbar = () => {
   const profileRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const isHome = location.pathname === '/';
 
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
@@ -29,7 +29,7 @@ const Navbar = () => {
   const leftLinks = [
     { 
       name: 'Sklep', 
-      path: '#', // Dropdown trigger
+      path: '#',
       isMegaMenu: true,
       submenu: [
          {
@@ -74,7 +74,6 @@ const Navbar = () => {
       const element = document.querySelector(path);
       if (element) element.scrollIntoView({ behavior: 'smooth' });
     } else if (path.includes('#')) {
-       // Handle /#story
        const [page, hash] = path.split('#');
        if (location.pathname !== page) {
            navigate(page);
@@ -93,7 +92,6 @@ const Navbar = () => {
     setIsMenuOpen(false);
   };
 
-  // Scroll effect
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
@@ -102,7 +100,6 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Search Logic
   const filteredProducts = searchQuery.length > 1 
     ? products.filter(product => 
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -117,7 +114,6 @@ const Navbar = () => {
     }
   }, [isSearchOpen]);
 
-  // Close profile dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (profileRef.current && !profileRef.current.contains(event.target)) {
@@ -128,37 +124,44 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    logout();
+  const handleUserLogout = () => {
+    userAuth.logout();
+    setIsProfileOpen(false);
+  };
+
+  const handleAdminLogout = () => {
+    adminAuth.logout();
     setIsProfileOpen(false);
     navigate('/');
   };
 
+  const userProfile = userAuth.getUserProfile();
+  const isAdmin = adminAuth.isAuthenticated;
+  const isUser = userAuth.isAuthenticated;
+
   return (
     <>
-      {/* Top Bar - Hidden on scroll to clean up view */}
+      {/* Top Bar */}
       <div className={`fixed w-full z-[60] transition-transform duration-300 ${scrolled ? '-translate-y-full' : 'translate-y-0'}`}>
          <TopBar />
       </div>
 
       <nav 
         className={`fixed w-full z-50 transition-all duration-500 ease-in-out bg-[#F9F8F6]/95 backdrop-blur-md shadow-sm text-korzen-charcoal ${
-          scrolled 
-            ? 'py-2 top-0' 
-            : 'py-6 top-8'
+          scrolled ? 'py-2 top-0' : 'py-6 top-8'
         }`}
       >
         <div className="max-w-[1400px] mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between relative">
             
-            {/* Mobile Menu Button (Left) */}
+            {/* Mobile Menu Button */}
             <div className="absolute left-0 top-1/2 -translate-y-1/2 md:hidden">
               <button onClick={() => setIsMenuOpen(true)} className="p-2">
                 <Menu className="h-6 w-6" />
               </button>
             </div>
 
-            {/* Desktop Navigation (Left Side) */}
+            {/* Desktop Navigation Left */}
             <div className="hidden md:flex flex-1 justify-start space-x-8">
               {leftLinks.map((link) => (
                 <div key={link.name} className="relative group">
@@ -206,7 +209,7 @@ const Navbar = () => {
               ))}
             </div>
 
-            {/* Logo (Center) */}
+            {/* Logo Center */}
             <div className="flex-shrink-0 mx-auto transform hover:scale-105 transition-transform duration-500 cursor-pointer" onClick={() => navigate('/')}>
                <div className="flex flex-col items-center">
                   <span className={`font-serif font-bold tracking-widest transition-all duration-300 text-korzen-olive ${scrolled ? 'text-3xl' : 'text-4xl'}`}>
@@ -218,7 +221,7 @@ const Navbar = () => {
                </div>
             </div>
 
-            {/* Desktop Navigation (Right Side) */}
+            {/* Desktop Navigation Right */}
             <div className="hidden md:flex flex-1 justify-end items-center space-x-8">
                <div className="flex space-x-8 mr-8">
                   {rightLinks.map((link) => (
@@ -257,82 +260,78 @@ const Navbar = () => {
                     </button>
                     
                     {isProfileOpen && (
-                      <div className="absolute right-0 top-full mt-2 w-48 bg-white shadow-lg rounded-sm py-2 border-t-2 border-korzen-olive">
-                        {isAuthenticated ? (
+                      <div className="absolute right-0 top-full mt-2 w-56 bg-white shadow-xl rounded-lg py-2 border border-stone-200">
+                        {isAdmin ? (
                           <>
+                            <div className="px-4 py-2 border-b border-stone-200">
+                              <p className="text-xs text-gray-500">Administrador</p>
+                            </div>
                             <button
                               onClick={() => {
-               
-               {/* Mobile Profile */}
-               <div className="relative" ref={profileRef}>
-                 <button onClick={() => setIsProfileOpen(!isProfileOpen)}>
-                   <User className="h-5 w-5" />
-                 </button>
-                 
-                 {isProfileOpen && (
-                   <div className="absolute right-0 top-full mt-2 w-48 bg-white shadow-lg rounded-sm py-2 border-t-2 border-korzen-olive z-50">
-                     {isAuthenticated ? (
-                       <>
-                         <button
-                           onClick={() => {
-                             navigate('/admin/dashboard');
-                             setIsProfileOpen(false);
-                           }}
-                           className="w-full text-left px-4 py-2 text-sm text-korzen-charcoal hover:bg-stone-50 hover:text-korzen-olive transition-colors flex items-center gap-2"
-                         >
-                           <LayoutDashboard className="h-4 w-4" />
-                           Panel de Admin
-                         </button>
-                         <button
-                           onClick={handleLogout}
-                           className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
-                         >
-                           <LogOut className="h-4 w-4" />
-                           Cerrar Sesión
-                         </button>
-                       </>
-                     ) : (
-                       <button
-                         onClick={() => {
-                           navigate('/admin/login');
-                           setIsProfileOpen(false);
-                         }}
-                         className="w-full text-left px-4 py-2 text-sm text-korzen-charcoal hover:bg-stone-50 hover:text-korzen-olive transition-colors flex items-center gap-2"
-                       >
-                         <User className="h-4 w-4" />
-                         Iniciar Sesión
-                       </button>
-                     )}
-                   </div>
-                 )}
-               </div>
                                 navigate('/admin/dashboard');
                                 setIsProfileOpen(false);
                               }}
-                              className="w-full text-left px-4 py-2 text-sm text-korzen-charcoal hover:bg-stone-50 hover:text-korzen-olive transition-colors flex items-center gap-2"
+                              className="w-full text-left px-4 py-2.5 text-sm text-korzen-charcoal hover:bg-stone-50 hover:text-korzen-olive transition-colors flex items-center gap-3"
                             >
                               <LayoutDashboard className="h-4 w-4" />
                               Panel de Admin
                             </button>
                             <button
-                              onClick={handleLogout}
-                              className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+                              onClick={handleAdminLogout}
+                              className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-3 border-t border-stone-200"
+                            >
+                              <LogOut className="h-4 w-4" />
+                              Cerrar Sesión
+                            </button>
+                          </>
+                        ) : isUser ? (
+                          <>
+                            <div className="px-4 py-2 border-b border-stone-200">
+                              <p className="text-xs text-gray-500">Hola,</p>
+                              <p className="text-sm font-semibold text-korzen-charcoal">{userProfile?.fullName || 'Usuario'}</p>
+                            </div>
+                            <button
+                              onClick={handleUserLogout}
+                              className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-3"
                             >
                               <LogOut className="h-4 w-4" />
                               Cerrar Sesión
                             </button>
                           </>
                         ) : (
-                          <button
-                            onClick={() => {
-                              navigate('/admin/login');
-                              setIsProfileOpen(false);
-                            }}
-                            className="w-full text-left px-4 py-2 text-sm text-korzen-charcoal hover:bg-stone-50 hover:text-korzen-olive transition-colors flex items-center gap-2"
-                          >
-                            <User className="h-4 w-4" />
-                            Iniciar Sesión
-                          </button>
+                          <>
+                            <button
+                              onClick={() => {
+                                navigate('/login');
+                                setIsProfileOpen(false);
+                              }}
+                              className="w-full text-left px-4 py-2.5 text-sm text-korzen-charcoal hover:bg-stone-50 hover:text-korzen-olive transition-colors flex items-center gap-3"
+                            >
+                              <LogIn className="h-4 w-4" />
+                              Iniciar Sesión
+                            </button>
+                            <button
+                              onClick={() => {
+                                navigate('/register');
+                                setIsProfileOpen(false);
+                              }}
+                              className="w-full text-left px-4 py-2.5 text-sm text-korzen-olive hover:bg-korzen-olive/5 transition-colors flex items-center gap-3 font-medium"
+                            >
+                              <UserPlus className="h-4 w-4" />
+                              Crear Cuenta
+                            </button>
+                            <div className="border-t border-stone-200 mt-1 pt-1">
+                              <button
+                                onClick={() => {
+                                  navigate('/admin/login');
+                                  setIsProfileOpen(false);
+                                }}
+                                className="w-full text-left px-4 py-2.5 text-xs text-gray-500 hover:bg-stone-50 transition-colors"
+                              >
+                                Acceso Admin
+                              </button>
+                            </div>
+                          </>
                         )}
                       </div>
                     )}
@@ -340,7 +339,7 @@ const Navbar = () => {
                </div>
             </div>
 
-            {/* Mobile Icons (Right) */}
+            {/* Mobile Icons */}
             <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center space-x-4 md:hidden">
                <button onClick={() => setIsSearchOpen(true)}>
                   <Search className="h-5 w-5" />
@@ -358,7 +357,7 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Search Overlay - Full Screen Minimal */}
+        {/* Search Overlay */}
         <AnimatePresence>
           {isSearchOpen && (
             <motion.div 
@@ -381,7 +380,6 @@ const Navbar = () => {
                     className="w-full bg-transparent text-4xl md:text-6xl font-serif text-korzen-charcoal placeholder-gray-300 border-b-2 border-gray-200 focus:border-korzen-olive outline-none py-4 text-center transition-colors"
                   />
                   
-                  {/* Minimal Results */}
                   <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-6">
                     {filteredProducts.map(product => (
                        <div key={product.id} onClick={() => {setIsSearchOpen(false); navigate('/')}} className="cursor-pointer group">
@@ -397,7 +395,7 @@ const Navbar = () => {
           )}
         </AnimatePresence>
 
-        {/* Mobile Menu Drawer */}
+        {/* Mobile Menu */}
         {createPortal(
           <AnimatePresence>
             {isMenuOpen && (
@@ -416,8 +414,7 @@ const Navbar = () => {
                   animate={{ x: 0 }}
                   exit={{ x: '-100%' }}
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  className="fixed top-0 left-0 h-full w-[80%] max-w-sm !bg-white z-[9999] shadow-2xl p-8 flex flex-col"
-                  style={{ backgroundColor: '#ffffff' }}
+                  className="fixed top-0 left-0 h-full w-[80%] max-w-sm bg-white z-[9999] shadow-2xl p-8 flex flex-col"
                 >
                   <div className="flex justify-end items-center mb-12">
                      <button onClick={() => setIsMenuOpen(false)}>
@@ -434,16 +431,21 @@ const Navbar = () => {
                         >
                           {link.name}
                         </button>
-                        {link.submenu && (
+                        {link.submenu && link.isMegaMenu && (
                           <div className="mt-3 pl-2 flex flex-col space-y-3 border-t border-gray-300 pt-3">
-                            {link.submenu.map(sub => (
-                               <button
-                                  key={sub.name}
-                                  onClick={() => handleLinkClick(sub.path)}
-                                  className="text-base font-semibold text-gray-800 hover:text-korzen-olive text-left pl-2 border-l-2 border-korzen-olive/30 hover:border-korzen-olive transition-colors"
-                               >
-                                 {sub.name}
-                               </button>
+                            {link.submenu.map((section, idx) => (
+                               <div key={idx}>
+                                  <h5 className="font-semibold text-korzen-olive text-sm mb-2">{section.title}</h5>
+                                  {section.items.map(item => (
+                                     <button
+                                        key={item.name}
+                                        onClick={() => handleLinkClick(item.path)}
+                                        className="text-sm text-gray-700 hover:text-korzen-olive text-left pl-2 block py-1"
+                                     >
+                                       {item.name}
+                                     </button>
+                                  ))}
+                               </div>
                             ))}
                           </div>
                         )}
